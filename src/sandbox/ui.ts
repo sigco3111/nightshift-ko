@@ -7,6 +7,7 @@
  */
 import { EventBus } from '../core/events';
 import type { CameraMode, GameEvents, GameState, HudState, QualityLevel, RunSummary } from '../core/types';
+import { initI18n, t } from '../i18n';
 import { createUi } from '../ui';
 
 declare global {
@@ -16,6 +17,7 @@ declare global {
   }
 }
 
+initI18n();
 const q = new URLSearchParams(location.search);
 const state = q.get('state') ?? 'menu';
 if (q.get('touch') === '1') document.documentElement.dataset.nsTouch = '1';
@@ -80,7 +82,7 @@ const summary: RunSummary = {
   bestCombo: 6,
   bestScore: 48210,
   isNewBest: q.get('newbest') !== '0',
-  cause: 'Rear-ended a truck at 241 km/h',
+  cause: t('cause.rear.truck'),
 };
 
 const key = (code: string): void => {
@@ -115,7 +117,7 @@ async function main(): Promise<void> {
   let settle = 700;
   switch (state) {
     case 'loading':
-      ui.setLoading(0.64, 'Compiling shaders');
+      ui.setLoading(0.64, t('load.warmup'));
       settle = 300;
       break;
     case 'menu':
@@ -150,12 +152,12 @@ async function main(): Promise<void> {
       await frames(2);
       ui.updateHud({ ...hud, combo: 5 }); // combo increase → pulse
       hud.combo = 5;
-      ui.popup('+250 NEAR MISS x3', 'nearMiss');
+      ui.popup(`${t('popup.nearMiss')}  +250 x3`, 'nearMiss');
       await wait(120);
-      ui.popup('+1,200 CLOSE CALL x4', 'bonus');
+      ui.popup(`${t('bonus.needle')}  +1200 x4`, 'bonus');
       await wait(120);
-      ui.popup('+500 NEAR MISS x5', 'nearMiss');
-      ui.banner('Pile-up ahead', 'warning');
+      ui.popup(`${t('popup.nearMiss')}  +500 x5`, 'nearMiss');
+      ui.banner(t('banner.pileup'), 'warning');
       settle = 600;
       break;
     case 'pause':
