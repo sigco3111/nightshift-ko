@@ -19,6 +19,7 @@ import { clamp } from '../core/math';
 import { breakOverpassRailing } from '../world/features/structures';
 import { BARRIER_LEFT_D, BARRIER_RIGHT_D, LANE_CENTERS, OVERPASS_DECK_Y } from '../world/roadProfile';
 import type { ScoreSystem } from './score';
+import { t } from '../i18n';
 
 const _v = new Vector3();
 const _a = new Vector3();
@@ -349,7 +350,7 @@ export class Director {
           }
           this.phase = 'warned';
           this.t = 0;
-          ctx.ui?.banner('PILE-UP AHEAD — KEEP LEFT', 'warning');
+          ctx.ui?.banner(t('banner.pileup'), 'warning');
           ctx.audio?.play('warning');
           ctx.events.emit('cinematic', { id: 'chainReaction', phase: 'warn' });
         } else if (dist < -30) this.end('chainReaction', 'passed-in-setup');
@@ -388,7 +389,7 @@ export class Director {
     const passed = p.s > this.tankerS + 30;
     if (this.phase === 'running' && this.t > 2.6) this.phase = 'aftermath';
     if (passed && p.alive) {
-      this.score.bonus('CHAIN REACTION SURVIVED', 3000);
+      this.score.bonus(t('bonus.chain'), 3000);
       ctx.audio?.play('bonus');
       this.end('chainReaction', 'survived');
     } else if (this.t > 30) this.end('chainReaction', 'aftermath-timeout');
@@ -514,7 +515,7 @@ export class Director {
     this.active = 'lastSecondEscape';
     this.phase = 'warned';
     this.t = 0;
-    ctx.ui?.banner(this.bSide > 0 ? 'INCOMING — KEEP LEFT' : 'INCOMING — KEEP RIGHT', 'warning');
+    ctx.ui?.banner(this.bSide > 0 ? t('banner.incomingLeft') : t('banner.incomingRight'), 'warning');
     ctx.audio?.play('warning');
     ctx.audio?.play('horn', { position: ctx.road.toWorld(op, 0, OVERPASS_DECK_Y, _p), volume: 0.8 });
     ctx.events.emit('cinematic', { id: 'lastSecondEscape', phase: 'warn' });
@@ -587,7 +588,7 @@ export class Director {
     }
     if (p.alive && p.s > this.overpassS + 14) {
       const tight = this.bExploded ? this.clock - this.bImpactAt < 2.6 : true;
-      this.score.bonus(tight ? 'LAST-SECOND ESCAPE' : 'ESCAPED THE WRECK', tight ? 4000 : 1500);
+      this.score.bonus(tight ? t('bonus.lastSecond') : t('bonus.wreck'), tight ? 4000 : 1500);
       ctx.audio?.play('bonus');
       if (tight) this.slowMo = 0.9;
       this.end('lastSecondEscape', tight ? 'escaped-tight' : 'escaped');

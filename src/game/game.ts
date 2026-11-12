@@ -29,6 +29,7 @@ import type { Headlights } from './headlights';
 import { Player } from './player';
 import type { CrashInfo } from './player';
 import { ScoreSystem, readBest } from './score';
+import { t as tr } from '../i18n';
 
 const FIXED = 1 / 120;
 const START_S = 20;
@@ -167,7 +168,7 @@ export class Game {
       d.materials.anisotropy = settings.anisotropy;
     });
     ev.on('nearMiss', (e) => {
-      ctx.ui?.popup(`NEAR MISS  +${e.points}`, 'nearMiss');
+      ctx.ui?.popup(`${tr('popup.nearMiss')}  +${e.points}`, 'nearMiss');
       ctx.audio?.play('nearMiss', { pan: e.side * 0.7, pitch: 1 + Math.min(0.5, (e.combo - 1) * 0.06) });
       ctx.audio?.play('passBy', { pan: e.side * 0.9, volume: 0.7 });
       this.player.sim.addNitro(e.gap < 0.45 ? 0.2 : 0.13);
@@ -526,7 +527,7 @@ export class Game {
       const level = d.quality.stepDown();
       if (level) {
         this.pushSettings();
-        ctx.ui?.popup(`GRAPHICS: ${level.toUpperCase()}`, 'info');
+        ctx.ui?.popup(tr('popup.graphics', { level: tr(`set.q.${level}`).toUpperCase() }), 'info');
       }
     }
 

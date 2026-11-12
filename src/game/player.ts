@@ -5,6 +5,7 @@ import { VehicleSim } from '../vehicle/vehicleSim';
 import { BARRIER_LEFT_D, BARRIER_RIGHT_D } from '../world/roadProfile';
 import { makeObb, obbOverlap, setObb } from './collide';
 import type { Contact } from './collide';
+import { t } from '../i18n';
 
 /** Closing speed (m/s along the contact normal) above which a hit wrecks the car outright. */
 const FATAL_VEHICLE = 11.5;
@@ -132,7 +133,7 @@ export class Player {
 
     this.collideBarriers(dt, f.rx, f.rz, f.tx, f.tz);
     if (st.alive) this.collideVehicles();
-    if (st.alive && st.damage >= 1) this.crash('TOTALLED', null, _pos.set(sim.x, 0.5, sim.z), _nrm.set(0, 0, 0), null);
+    if (st.alive && st.damage >= 1) this.crash(t('cause.totalled'), null, _pos.set(sim.x, 0.5, sim.z), _nrm.set(0, 0, 0), null);
 
     if (sim.nitroActive !== this.lastNitro) {
       this.lastNitro = sim.nitroActive;
@@ -168,7 +169,7 @@ export class Player {
     _nrm.set(-rx * side, 0, -rz * side);
     if (vn > 0) {
       if (vn > FATAL_BARRIER && this.grace <= 0) {
-        this.crash('SLAMMED INTO THE BARRIER', null, _pos, _nrm, null);
+        this.crash(t('cause.barrier'), null, _pos, _nrm, null);
         return;
       }
       // Bounce off with little restitution, lose some forward speed, get straightened by the wall.
@@ -227,8 +228,8 @@ export class Player {
         if (vn > FATAL_VEHICLE && this.grace <= 0) {
           // Normal (player → other) along our forward axis: the other car is ahead (we ran into it) or behind (it ran into us).
           const along = c.nx * a.sin - c.nz * a.cos;
-          const what = v.type === 'semi' || v.type === 'tanker' || v.type === 'boxtruck' ? 'A TRUCK' : v.type === 'van' ? 'A VAN' : 'TRAFFIC';
-          this.crash(along > 0.7 ? `REAR-ENDED ${what}` : along < -0.7 ? 'HIT FROM BEHIND' : `COLLIDED WITH ${what}`, v, _pos, _nrm, v);
+          const what = v.type === 'semi' || v.type === 'tanker' || v.type === 'boxtruck' ? 'truck' : v.type === 'van' ? 'van' : 'traffic';
+          this.crash(along > 0.7 ? t(`cause.rear.${what}`) : along < -0.7 ? t('cause.behind') : t(`cause.hit.${what}`), v, _pos, _nrm, v);
           return;
         }
         // Glancing contact: we bounce off the (much heavier-feeling) kinematic vehicle.
@@ -281,7 +282,7 @@ export class Player {
         _nrm.set(-c.nx, 0, -c.nz);
         const heavy = b.mass > 600;
         if (heavy && vn > FATAL_WRECK && this.grace <= 0) {
-          this.crash(b.burning ? 'DROVE INTO THE FIRE' : 'HIT A WRECK', b, _pos, _nrm, null);
+          this.crash(b.burning ? t('cause.fire') : t('cause.wreck'), b, _pos, _nrm, null);
           return;
         }
         const share = b.mass / (b.mass + st.dims.mass);

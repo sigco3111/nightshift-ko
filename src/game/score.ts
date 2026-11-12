@@ -1,5 +1,6 @@
 import type { IEventBus, RunSummary, TrafficVehicle } from '../core/types';
 import { clamp } from '../core/math';
+import { t } from '../i18n';
 
 const BEST_KEY = 'nightshift.best';
 export const COMBO_WINDOW = 4.5; // seconds a combo survives without a new near miss
@@ -121,7 +122,7 @@ export class ScoreSystem {
       this.speedRiskTimer += dt;
       if (this.speedRiskTimer >= 5) {
         this.speedRiskTimer = 0;
-        this.bonus(kmh > 300 ? 'RED LINE' : 'HIGH SPEED', kmh > 300 ? 600 : 300);
+        this.bonus(kmh > 300 ? t('bonus.redLine') : t('bonus.highSpeed'), kmh > 300 ? 600 : 300);
       }
     } else this.speedRiskTimer = Math.max(0, this.speedRiskTimer - dt * 2);
 
@@ -177,7 +178,7 @@ export class ScoreSystem {
     // Threading between two vehicles side by side.
     if (threaded >= 2 && kmh > 140 && this.time - this.lastThread > 2) {
       this.lastThread = this.time;
-      this.bonus('THREAD THE NEEDLE', 500);
+      this.bonus(t('bonus.needle'), 500);
     }
     for (const id of this.track.keys()) if (this.track.get(id)!.stamp !== stamp) this.track.delete(id);
   }
