@@ -4,10 +4,13 @@
  *   - guide signs glow faintly (≈ 0.25 linear) so they read beyond the headlights
  *   - VMS LED dots are full amber (× emissiveScale = 6)
  *   - verge signs are not lit (retro-reflection only)
- * All legends are invented; no real agency logos.
+ * All legends are invented; no real agency logos. Legends come from signtext.ts (ko / en) and the whole
+ * atlas is repainted in place when the language is switched (layout and UVs never change).
  */
 import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace } from 'three';
 import { makeRng } from '../../../core/math';
+import { onLangChange } from '../../../i18n';
+import { SIGN_FONT, fitPx, HANGUL_RE, st } from '../../signtext';
 
 export interface UvRect {
   u0: number;
@@ -35,7 +38,7 @@ const SIZE = 2048;
 const EMISSIVE_SCALE = 6;
 /** sRGB multiplier that gives ≈ 0.25 / 6 linear: faint self-illumination of guide signs. */
 const GUIDE_GLOW = 0.232;
-const FONT = 'Arial, Helvetica, "Segoe UI", sans-serif';
+const FONT = SIGN_FONT;
 
 let atlas: SignAtlas | null = null;
 
@@ -61,12 +64,18 @@ function rr(c: Ctx, x: number, y: number, w: number, h: number, r: number): void
   c.closePath();
 }
 
-function text(c: Ctx, s: string, x: number, y: number, px: number, align: CanvasTextAlign = 'left', color = WHITE, weight = 'bold'): void {
-  c.font = `${weight} ${px}px ${FONT}`;
+/** Width of the cell currently being painted (text never runs past its inner margin). */
+let cellW = SIZE;
+const MARGIN = 32;
+
+/** Draws text, shrinking it (Hangul is wider than Latin) so it stays inside the cell; maxW overrides the default room. */
+function text(c: Ctx, s: string, x: number, y: number, px: number, align: CanvasTextAlign = 'left', color = WHITE, weight = 'bold', maxW?: number): void {
+  const room = maxW ?? (align === 'left' ? cellW - MARGIN - x : align === 'right' ? x - MARGIN : 2 * Math.min(x - MARGIN, cellW - MARGIN - x));
+  fitPx(c, s, px, room, (p) => `${weight} ${p}px ${FONT}`);
   c.fillStyle = color;
   c.textAlign = align;
   c.textBaseline = 'alphabetic';
-  c.fillText(s, x, y);
+  c.fillText(s, x, y, room);
 }
 
 /** Down arrow (lane arrow) centred at x, from y0 to y1. */
@@ -139,8 +148,8 @@ const GUIDES: GuideDef[] = [
     bg: BLUE,
     draw: (c, w, h) => {
       routeBox(c, 'M7', 44, 40, 58);
-      text(c, 'NORTHGATE', 44, 186, 74);
-      text(c, 'Port Ellison', 44, 266, 64, 'left', WHITE, '600');
+      text(c, st('place.northgate'), 44, 186, 74);
+      text(c, st('place.portEllison'), 44, 266, 64, 'left', WHITE, '600');
       downArrow(c, w * 0.3, 284, h - 26, 66);
       downArrow(c, w * 0.7, 284, h - 26, 66);
     },
@@ -149,8 +158,8 @@ const GUIDES: GuideDef[] = [
     bg: GREEN,
     draw: (c, w, h) => {
       routeBox(c, 'A41', 44, 40, 58, true);
-      text(c, 'CITY CENTRE', 44, 186, 70);
-      text(c, 'Harbour District', 44, 262, 60, 'left', WHITE, '600');
+      text(c, st('place.cityCentre'), 44, 186, 70);
+      text(c, st('place.harbour'), 44, 262, 60, 'left', WHITE, '600');
       downArrow(c, w * 0.5, 282, h - 26, 66);
     },
   },
@@ -158,20 +167,21 @@ const GUIDES: GuideDef[] = [
     bg: BLUE,
     draw: (c, w) => {
       routeBox(c, 'M7', 44, 34, 52);
-      text(c, 'Westmere', 44, 168, 60, 'left', WHITE, '600');
-      text(c, 'Kingsford', 44, 248, 60, 'left', WHITE, '600');
-      text(c, 'Brayfield', 44, 328, 60, 'left', WHITE, '600');
+      // distance column ("8", "21", "46") is right-aligned at w - 50: leave it ~110 px
+      text(c, st('place.westmere'), 44, 168, 60, 'left', WHITE, '600', w - 44 - 110);
+      text(c, st('place.kingsford'), 44, 248, 60, 'left', WHITE, '600', w - 44 - 110);
+      text(c, st('place.brayfield'), 44, 328, 60, 'left', WHITE, '600', w - 44 - 110);
       text(c, '8', w - 50, 168, 64, 'right');
       text(c, '21', w - 50, 248, 64, 'right');
       text(c, '46', w - 50, 328, 64, 'right');
-      text(c, 'km', w - 50, 80, 34, 'right', WHITE, '600');
+      text(c, st('sign.km'), w - 50, 80, 34, 'right', WHITE, '600');
     },
   },
   {
     bg: GREEN,
     draw: (c, w, h) => {
-      text(c, 'AIRPORT', 44, 120, 74);
-      text(c, 'Terminals 1-3', 44, 196, 56, 'left', WHITE, '600');
+      text(c, st('place.airport'), 44, 120, 74, 'left', WHITE, 'bold', w * 0.78 - 60 - 44);
+      text(c, st('place.terminals'), 44, 196, 56, 'left', WHITE, '600', w * 0.78 - 60 - 44);
       routeBox(c, 'A9', 44, 228, 50, true);
       downArrow(c, w * 0.78, 120, h - 30, 70);
     },
@@ -179,8 +189,8 @@ const GUIDES: GuideDef[] = [
   {
     bg: BLUE,
     draw: (c, w, h) => {
-      text(c, 'THROUGH TRAFFIC', w / 2, 118, 62, 'center');
-      text(c, 'Ashcombe  ·  Northgate', w / 2, 196, 50, 'center', WHITE, '600');
+      text(c, st('place.through'), w / 2, 118, 62, 'center');
+      text(c, st('place.ashNorth'), w / 2, 196, 50, 'center', WHITE, '600');
       downArrow(c, w * 0.22, 220, h - 28, 60);
       downArrow(c, w * 0.5, 220, h - 28, 60);
       downArrow(c, w * 0.78, 220, h - 28, 60);
@@ -190,8 +200,8 @@ const GUIDES: GuideDef[] = [
     bg: GREEN,
     draw: (c, w, h) => {
       routeBox(c, 'A520', 44, 40, 54, true);
-      text(c, 'RIVERSIDE', 44, 178, 72);
-      text(c, 'Docklands', 44, 252, 60, 'left', WHITE, '600');
+      text(c, st('place.riverside'), 44, 178, 72);
+      text(c, st('place.docklands'), 44, 252, 60, 'left', WHITE, '600');
       downArrow(c, w * 0.32, 276, h - 26, 62);
       downArrow(c, w * 0.68, 276, h - 26, 62);
     },
@@ -200,10 +210,11 @@ const GUIDES: GuideDef[] = [
     bg: GREEN,
     exit: true,
     draw: (c, w) => {
-      exitTab(c, 'EXIT 14', w, GREEN);
-      text(c, 'Ashcombe', 44, 196, 76);
-      text(c, 'Halloway', 44, 276, 64, 'left', WHITE, '600');
-      text(c, '½ mile', 44, 350, 52, 'left', WHITE, '600');
+      exitTab(c, st('sign.exit14'), w, GREEN);
+      // the exit arrow (centre w - 100, ~±70 wide) sits on the right: keep the legend clear of it
+      text(c, st('place.ashcombe'), 44, 196, 76);
+      text(c, st('place.halloway'), 44, 276, 64, 'left', WHITE, '600', w - 100 - 78 - 44);
+      text(c, st('sign.halfMile'), 44, 350, 52, 'left', WHITE, '600', w - 100 - 78 - 44);
       exitArrow(c, w - 100, 270, 140);
     },
   },
@@ -211,10 +222,10 @@ const GUIDES: GuideDef[] = [
     bg: BLUE,
     exit: true,
     draw: (c, w) => {
-      exitTab(c, 'EXIT 15', w, BLUE);
+      exitTab(c, st('sign.exit15'), w, BLUE);
       routeBox(c, 'A9', 44, 112, 52, true, BLUE);
-      text(c, 'Kingsford', 44, 262, 74);
-      text(c, 'Retail Park', 44, 340, 58, 'left', WHITE, '600');
+      text(c, st('place.kingsford'), 44, 262, 74, 'left', WHITE, 'bold', w - 100 - 78 - 44);
+      text(c, st('place.retail'), 44, 340, 58, 'left', WHITE, '600', w - 100 - 78 - 44);
       exitArrow(c, w - 100, 270, 140);
     },
   },
@@ -222,20 +233,20 @@ const GUIDES: GuideDef[] = [
     bg: GREEN,
     exit: true,
     draw: (c, w) => {
-      exitTab(c, 'EXIT 16', w, GREEN);
-      text(c, 'Brayfield', 44, 196, 76);
-      text(c, 'Industrial Est.', 44, 274, 58, 'left', WHITE, '600');
-      text(c, '1 mile', 44, 348, 52, 'left', WHITE, '600');
+      exitTab(c, st('sign.exit16'), w, GREEN);
+      text(c, st('place.brayfield'), 44, 196, 76);
+      text(c, st('place.industrial'), 44, 274, 58, 'left', WHITE, '600', w - 100 - 78 - 44);
+      text(c, st('sign.oneMile'), 44, 348, 52, 'left', WHITE, '600', w - 100 - 78 - 44);
       exitArrow(c, w - 100, 270, 140);
     },
   },
 ];
 
-const VMS_MSGS: Array<[string, string]> = [
-  ['HEAVY RAIN', 'REDUCE SPEED'],
-  ['ACCIDENT AHEAD', 'KEEP LEFT'],
-  ['SURFACE WATER', 'SLOW DOWN'],
-  ['SPRAY  POOR VIS', 'USE HEADLIGHTS'],
+const VMS_MSGS = (): Array<[string, string]> => [
+  [st('vms.1a'), st('vms.1b')],
+  [st('vms.2a'), st('vms.2b')],
+  [st('vms.3a'), st('vms.3b')],
+  [st('vms.4a'), st('vms.4b')],
 ];
 
 /** Weathering: soft grime gradient + speckles, drawn over a sign rect. */
@@ -276,16 +287,14 @@ function uvOf(x: number, y: number, w: number, h: number, inset = 2): UvRect {
   };
 }
 
-export function getSignAtlas(): SignAtlas {
-  if (atlas) return atlas;
-  const ca = document.createElement('canvas');
-  const ce = document.createElement('canvas');
-  ca.width = ca.height = ce.width = ce.height = SIZE;
-  const a = ca.getContext('2d')!;
-  const e = ce.getContext('2d')!;
+type Layout = Pick<SignAtlas, 'guide' | 'exitGuide' | 'vms' | 'small' | 'glyph'>;
+
+/** Paints every sign face into the albedo (a) and emissive (e) canvases in the current language. */
+function paintAtlas(a: Ctx, e: Ctx): Layout {
   a.clearRect(0, 0, SIZE, SIZE);
   e.fillStyle = '#000';
   e.fillRect(0, 0, SIZE, SIZE);
+  const ca = a.canvas;
 
   const guide: UvRect[] = [];
   const exitGuide: number[] = [];
@@ -295,6 +304,7 @@ export function getSignAtlas(): SignAtlas {
   GUIDES.forEach((def, i) => {
     const x = (i % 3) * (GW + 8);
     const y = Math.floor(i / 3) * (GH + 8);
+    cellW = GW;
     a.save();
     a.translate(x, y);
     a.fillStyle = def.bg;
@@ -330,7 +340,7 @@ export function getSignAtlas(): SignAtlas {
   lo.width = COLS;
   lo.height = ROWS;
   const l = lo.getContext('2d', { willReadFrequently: true })!;
-  VMS_MSGS.forEach(([l1, l2], i) => {
+  VMS_MSGS().forEach(([l1, l2], i) => {
     const x = (i % 2) * (VW + 8);
     const y = 3 * (GH + 8) + Math.floor(i / 2) * (VH + 8);
     // Housing face.
@@ -346,7 +356,10 @@ export function getSignAtlas(): SignAtlas {
     l.fillStyle = '#fff';
     l.textAlign = 'center';
     l.textBaseline = 'alphabetic';
-    l.font = `bold 12px ${FONT}`;
+    // Hangul fills its whole em box: 13 px with baselines 13 / 28 keeps both lines inside the 30 LED rows.
+    const hangul = HANGUL_RE.test(l1 + l2);
+    const lpx = hangul ? 13 : 12;
+    l.font = `bold ${lpx}px ${FONT}`;
     const fit = (s: string) => {
       const w = l.measureText(s).width;
       return w > COLS - 6 ? (COLS - 6) / w : 1;
@@ -357,7 +370,7 @@ export function getSignAtlas(): SignAtlas {
     l.restore();
     l.save();
     l.scale(fit(l2), 1);
-    l.fillText(l2, COLS / 2 / fit(l2), 27);
+    l.fillText(l2, COLS / 2 / fit(l2), hangul ? 28 : 27);
     l.restore();
     const px = l.getImageData(0, 0, COLS, ROWS).data;
     const pitchX = (VW - 60) / COLS;
@@ -387,6 +400,7 @@ export function getSignAtlas(): SignAtlas {
   const small = {} as Record<SmallSign, UvRect>;
   let x = 0;
   const cell = (name: SmallSign, w: number, h: number, draw: (c: Ctx, w: number, h: number) => void, wear = 0.6) => {
+    cellW = w;
     a.save();
     a.translate(x, y0);
     draw(a, w, h);
@@ -454,8 +468,8 @@ export function getSignAtlas(): SignAtlas {
     rr(c, 30, -14, 34, 44, 10);
     c.fill();
     c.restore();
-    text(c, 'SOS', w / 2, 200, 76, 'center');
-    text(c, 'EMERGENCY', w / 2, 238, 30, 'center', WHITE, '600');
+    text(c, st('sign.sos'), w / 2, 200, 76, 'center');
+    text(c, st('sign.emergency'), w / 2, 238, 30, 'center', WHITE, '600');
   });
   cell('exitAdv', 384, 256, (c, w) => {
     c.fillStyle = GREEN;
@@ -465,9 +479,11 @@ export function getSignAtlas(): SignAtlas {
     c.strokeStyle = WHITE;
     c.lineWidth = 6;
     c.stroke();
-    text(c, 'EXIT 14', 30, 72, 52);
-    text(c, 'Ashcombe', 30, 150, 58, 'left', WHITE, '600');
-    text(c, '1 mile', 30, 222, 48, 'left', WHITE, '600');
+    // exit arrow centre w - 70, ~±45 wide
+    const rm = w - 70 - 52 - 30;
+    text(c, st('sign.exit14'), 30, 72, 52, 'left', WHITE, 'bold', w - 30 - 30);
+    text(c, st('place.ashcombe'), 30, 150, 58, 'left', WHITE, '600', rm);
+    text(c, st('sign.oneMile'), 30, 222, 48, 'left', WHITE, '600', rm);
     exitArrow(c, w - 70, 150, 100);
   });
   cell('eArea', 384, 256, (c, w) => {
@@ -480,9 +496,9 @@ export function getSignAtlas(): SignAtlas {
     c.stroke();
     c.fillStyle = '#f08a1c';
     c.fillRect(28, 36, 112, 112);
-    text(c, 'SOS', 84, 112, 46, 'center', '#111');
-    text(c, 'EMERGENCY', 160, 84, 40, 'left');
-    text(c, 'AREA', 160, 132, 40, 'left');
+    text(c, st('sign.sos'), 84, 112, 46, 'center', '#111', 'bold', 96);
+    text(c, st('sign.area1'), 160, 84, 40, 'left', WHITE, 'bold', w - 160 - 24);
+    text(c, st('sign.area2'), 160, 132, 40, 'left', WHITE, 'bold', w - 160 - 24);
     text(c, '400 m', w / 2, 222, 58, 'center');
   });
 
@@ -500,13 +516,24 @@ export function getSignAtlas(): SignAtlas {
     a.fillRect(gx, gy + 75, 40, 5);
     if (ch === 'L') a.fillRect(gx + 18, gy + 4, 5, 76);
     else if (ch === 'R') a.fillRect(gx + 17, gy + 4, 5, 76);
-    else if (ch !== ' ') text(a, ch, gx + 20, gy + 62, 54, 'center');
+    else if (ch !== ' ') text(a, ch, gx + 20, gy + 62, 54, 'center', WHITE, 'bold', 38);
     // Edge glyphs: the half outside the border is transparent (plate ends there).
     if (ch === 'L') a.clearRect(gx, gy, 18, 84);
     if (ch === 'R') a.clearRect(gx + 22, gy, 18, 84);
     glyph[ch] = { u0: (gx + 0.5) / SIZE, u1: (gx + 39.5) / SIZE, v1: 1 - (gy + 0.5) / SIZE, v0: 1 - (gy + 83.5) / SIZE };
   });
 
+  return { guide, exitGuide, vms, small, glyph };
+}
+
+export function getSignAtlas(): SignAtlas {
+  if (atlas) return atlas;
+  const ca = document.createElement('canvas');
+  const ce = document.createElement('canvas');
+  ca.width = ca.height = ce.width = ce.height = SIZE;
+  const a = ca.getContext('2d')!;
+  const e = ce.getContext('2d')!;
+  const layout = paintAtlas(a, e);
   const albedo = new CanvasTexture(ca);
   albedo.colorSpace = SRGBColorSpace;
   albedo.anisotropy = 8;
@@ -514,6 +541,12 @@ export function getSignAtlas(): SignAtlas {
   const emissive = new CanvasTexture(ce);
   emissive.colorSpace = SRGBColorSpace;
   emissive.anisotropy = 8;
-  atlas = { albedo, emissive, emissiveScale: EMISSIVE_SCALE, guide, exitGuide, vms, small, glyph };
+  atlas = { albedo, emissive, emissiveScale: EMISSIVE_SCALE, ...layout };
+  // Language switch: same layout, new legends, re-upload the textures.
+  onLangChange(() => {
+    paintAtlas(a, e);
+    albedo.needsUpdate = true;
+    emissive.needsUpdate = true;
+  });
   return atlas;
 }
