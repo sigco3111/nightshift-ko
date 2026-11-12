@@ -5,6 +5,8 @@
 import { CanvasTexture, Color, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace } from 'three';
 import type { Material, Texture } from 'three';
 import type { IWorldMaterials } from '../../../core/types';
+import { onLangChange } from '../../../i18n';
+import { SIGN_FONT_NARROW, fitPx, st } from '../../signtext';
 
 export interface StructureMaterials {
   /** Board-formed panel concrete, outdoor (wet). */
@@ -69,14 +71,26 @@ function region(key: keyof typeof ATLAS, x: number, y: number, w: number, h: num
 
 let atlasTex: Texture | null = null;
 
-function makeAtlas(): Texture {
-  const cv = document.createElement('canvas');
-  cv.width = W;
-  cv.height = H;
-  const g = cv.getContext('2d')!;
+const font = (px: number) => `bold ${px}px ${SIGN_FONT_NARROW}`;
+const setSpacing = (g: CanvasRenderingContext2D, v: string) => ((g as unknown as { letterSpacing: string }).letterSpacing = v);
+
+/** Fill text at <= px so it fits `room` px (Hangul / fallback fonts are wider than Arial Narrow); fillText's maxWidth is the last resort. */
+function fillFit(g: CanvasRenderingContext2D, s: string, x: number, y: number, px: number, room: number): void {
+  const base = (g as unknown as { letterSpacing: string }).letterSpacing;
+  const sp = parseFloat(base) || 0;
+  // letterSpacing shrinks together with the font so the tracking keeps its look
+  fitPx(g, s, px, room, font, 0.4, (size) => setSpacing(g, `${(sp * size) / px}px`));
+  g.fillText(s, x, y, room);
+  setSpacing(g, base);
+}
+
+/** Paints every structure sign into the 1024² atlas canvas in the current language. */
+function paintAtlas(g: CanvasRenderingContext2D): void {
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
+  setSpacing(g, '0px');
   g.fillStyle = '#000';
   g.fillRect(0, 0, W, H);
-  const font = (px: number) => `bold ${px}px "Arial Narrow", Arial, Helvetica, sans-serif`;
 
   // Tunnel name / clearance band (back-lit): dark slate field, white lettering, amber clearance.
   region('tunnelName', 0, 0, 1024, 128);
@@ -88,12 +102,12 @@ function makeAtlas(): Texture {
   g.fillStyle = '#f2f4f0';
   g.font = font(78);
   g.textBaseline = 'middle';
-  (g as unknown as { letterSpacing: string }).letterSpacing = '10px';
-  g.fillText('MERIDIAN TUNNEL', 40, 66);
+  setSpacing(g, '10px');
+  fillFit(g, st('st.tunnelName'), 40, 66, 78, 774 - 40 - 24); // the clearance arrows start at x = 774
   g.fillStyle = '#ffb347';
   g.font = font(70);
-  (g as unknown as { letterSpacing: string }).letterSpacing = '4px';
-  g.fillText('4.8 m', 820, 66);
+  setSpacing(g, '4px');
+  fillFit(g, '4.8 m', 820, 66, 70, 1024 - 820 - 8);
   // clearance arrows
   g.beginPath();
   g.moveTo(790, 18);
@@ -151,9 +165,9 @@ function makeAtlas(): Texture {
   g.fillRect(256, 128, 256, 128);
   g.fillStyle = '#ffffff';
   g.font = font(84);
-  (g as unknown as { letterSpacing: string }).letterSpacing = '6px';
+  setSpacing(g, '6px');
   g.textAlign = 'center';
-  g.fillText('SOS', 384, 196);
+  fillFit(g, st('sign.sos'), 384, 196, 84, 256 - 40);
   g.textAlign = 'left';
 
   // Hazard stripes (yellow / black diagonals) — retro-reflective band.
@@ -191,8 +205,8 @@ function makeAtlas(): Texture {
   g.fillStyle = '#111';
   g.font = font(64);
   g.textAlign = 'center';
-  (g as unknown as { letterSpacing: string }).letterSpacing = '0px';
-  g.fillText('6.0m', 128, 452);
+  setSpacing(g, '0px');
+  fillFit(g, '6.0m', 128, 452, 64, 150);
   g.beginPath();
   g.moveTo(128, 392);
   g.lineTo(110, 414);
@@ -232,8 +246,8 @@ function makeAtlas(): Texture {
   g.strokeRect(522, 330, 492, 108);
   g.fillStyle = '#e8f0ea';
   g.font = font(60);
-  (g as unknown as { letterSpacing: string }).letterSpacing = '6px';
-  g.fillText('RIVER  VALE  BRIDGE', 548, 386);
+  setSpacing(g, '6px');
+  fillFit(g, st('st.bridgeName'), 548, 386, 60, 1014 - 548 - 12); // plate inner border ends at x = 1014
 
   // Lane-control signals (LED matrix look: dots on black, drawn large so they survive mips).
   const dots = (cx: number, cy: number, pts: Array<[number, number]>, col: string) => {
@@ -272,8 +286,8 @@ function makeAtlas(): Texture {
   g.fillStyle = '#101010';
   g.font = font(56);
   g.textAlign = 'center';
-  (g as unknown as { letterSpacing: string }).letterSpacing = '0px';
-  g.fillText('80', 320, 644);
+  setSpacing(g, '0px');
+  fillFit(g, '80', 320, 644, 56, 84);
 
   // Tunnel-exit distance signs (white on green, exit pictogram arrow).
   const dist = (key: 'dist200' | 'dist400' | 'dist600' | 'dist800', x: number, y: number, m: number) => {
@@ -286,9 +300,13 @@ function makeAtlas(): Texture {
     g.fillStyle = '#eef6f0';
     g.font = font(50);
     g.textAlign = 'left';
-    (g as unknown as { letterSpacing: string }).letterSpacing = '3px';
-    g.fillText('TUNNEL EXIT', x + 26, y + 50);
+    setSpacing(g, '3px');
+    // distance on the right keeps its size; the legend gets the room that is left
+    g.font = font(50);
+    const rw = g.measureText(`${m} m`).width;
+    fillFit(g, st('st.tunnelExit'), x + 26, y + 50, 50, 486 - 26 - rw - 16);
     g.textAlign = 'right';
+    g.font = font(50);
     g.fillText(`${m} m`, x + 486, y + 50);
     g.textAlign = 'left';
   };
@@ -296,11 +314,23 @@ function makeAtlas(): Texture {
   dist('dist400', 512, 704, 400);
   dist('dist600', 0, 800, 600);
   dist('dist800', 512, 800, 800);
+}
 
+function makeAtlas(): Texture {
+  const cv = document.createElement('canvas');
+  cv.width = W;
+  cv.height = H;
+  const g = cv.getContext('2d')!;
+  paintAtlas(g);
   const t = new CanvasTexture(cv);
   t.colorSpace = SRGBColorSpace;
   t.anisotropy = 8;
   t.needsUpdate = true;
+  // Language switch: same layout, new legends.
+  onLangChange(() => {
+    paintAtlas(g);
+    t.needsUpdate = true;
+  });
   return t;
 }
 
