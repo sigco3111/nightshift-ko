@@ -26,6 +26,7 @@ import type { OncomingLike } from './game/game';
 import { CrashWorld } from './physics/crashWorld';
 import { createPlayerCarVisual } from './vehicle/playerCarVisual';
 import { CameraRig } from './vehicle/cameraRig';
+import { initI18n, t } from './i18n';
 import { createUi } from './ui';
 import { createAudio } from './audio';
 import { createTrafficVehicleFactory } from './traffic/vehicleFactory';
@@ -59,13 +60,14 @@ function optional<T>(name: string, make: () => T): T | null {
 }
 
 async function boot(): Promise<void> {
+  initI18n();
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const uiRoot = document.getElementById('ui') as HTMLElement;
   const events = new EventBus();
 
   let audio: IAudio | null = null;
   const ui = createUi({ events, root: uiRoot, onSound: (n: SfxName) => audio?.play(n) });
-  ui.setLoading(0.03, 'Starting engine');
+  ui.setLoading(0.03, t('load.engine'));
   await nextFrame();
 
   const qParam = params.get('q') as QualityLevel | null;
@@ -103,7 +105,7 @@ async function boot(): Promise<void> {
     state: 'boot',
   };
 
-  ui.setLoading(0.12, 'Loading vehicle');
+  ui.setLoading(0.12, t('load.vehicle'));
   const car = await createPlayerCarVisual({ lighting, anisotropy: quality.settings.anisotropy, quality });
   player.dims = car.dims;
   engine.scene.add(car.root);
@@ -111,7 +113,7 @@ async function boot(): Promise<void> {
   const rig = new CameraRig(engine.camera, { hoodAnchor: car.anchors.hoodCam });
   ctx.cameraRig = rig;
 
-  ui.setLoading(0.34, 'Loading traffic');
+  ui.setLoading(0.34, t('load.traffic'));
   let factory: (ITrafficVehicleFactory & { setEnvMap(tex: Texture | null): void }) | null = null;
   let traffic: (ITrafficSystem & { readonly oncoming: readonly OncomingLike[] }) | null = null;
   try {
@@ -128,11 +130,11 @@ async function boot(): Promise<void> {
     factory?.setEnvMap(tex);
   });
 
-  ui.setLoading(0.5, 'Starting physics');
+  ui.setLoading(0.5, t('load.physics'));
   await crashReady;
   ctx.crash = crash;
 
-  ui.setLoading(0.58, 'Preparing effects');
+  ui.setLoading(0.58, t('load.effects'));
   const vfx: IVfx | null = optional('vfx', () => createVfx(ctx));
   if (vfx) ctx.vfx = vfx;
   const weather: IWeather | null = optional('weather', () => createWeather(ctx));
@@ -162,7 +164,7 @@ async function boot(): Promise<void> {
   game.autopilotOn = params.get('autopilot') === '1';
 
   // Build the opening stretch of the world and wait for textures.
-  ui.setLoading(0.66, 'Building the highway');
+  ui.setLoading(0.66, t('load.highway'));
   await nextFrame();
   game.boot(); // places the car, builds the chunks around the start, enters the menu state silently
   const pendingTotal = Math.max(1, materials.pending.length);
@@ -170,7 +172,7 @@ async function boot(): Promise<void> {
   await Promise.all(
     materials.pending.map((p) =>
       p.then(
-        () => ui.setLoading(0.66 + 0.2 * (++done / pendingTotal), 'Loading textures'),
+        () => ui.setLoading(0.66 + 0.2 * (++done / pendingTotal), t('load.textures')),
         () => undefined,
       ),
     ),
@@ -178,15 +180,15 @@ async function boot(): Promise<void> {
 
   // Warm-up: render real frames so shaders compile and the probe / reflection targets fill in
   // before the menu appears.
-  ui.setLoading(0.88, 'Warming up');
+  ui.setLoading(0.88, t('load.warmup'));
   let last = performance.now();
   for (let i = 0; i < 24; i++) {
     const now = await nextFrame();
     game.update(Math.min(0.05, Math.max(0.001, (now - last) / 1000)));
     last = now;
-    ui.setLoading(0.88 + 0.12 * ((i + 1) / 24), 'Warming up');
+    ui.setLoading(0.88 + 0.12 * ((i + 1) / 24), t('load.warmup'));
   }
-  ui.setLoading(1, 'Ready');
+  ui.setLoading(1, t('load.ready'));
   game.showMenu();
 
   // The first user gesture unlocks audio (autoplay policy).
@@ -265,6 +267,6 @@ boot().catch((err) => {
   const el = document.getElementById('boot-error');
   if (el) {
     el.hidden = false;
-    el.textContent = `NIGHTSHIFT could not start: ${err instanceof Error ? err.message : String(err)}`;
+    el.textContent = t('doc.bootError', { msg: err instanceof Error ? err.message : String(err) });
   }
 });
