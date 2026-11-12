@@ -12,6 +12,7 @@
 import type { CameraMode, GameState, HudState, IEventBus, IUi, QualityLevel, RunSummary, SfxName } from '../core/types';
 import './ui.css';
 import { LiveText, h, setFlag, setOpen, wordmark } from './dom';
+import { ta, tn, t } from '../i18n';
 import { loadUiFonts } from './fonts';
 import { GameOver } from './gameover';
 import { Hud } from './hud';
@@ -56,10 +57,10 @@ export function createUi(deps: UiDeps): IUi {
   // ── loading
   const loadFill = h('span.ns-progress__fill');
   const loadPct = new LiveText('0%');
-  const loadLabel = new LiveText('Loading');
+  const loadLabel = new LiveText(t('load.initial'));
   const loading = h(
     'section.ns-layer.ns-loading',
-    { role: 'progressbar', 'aria-label': 'Loading', 'aria-valuemin': 0, 'aria-valuemax': 100 },
+    { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100 },
     h(
       'div.ns-loading__inner',
       null,
@@ -68,6 +69,8 @@ export function createUi(deps: UiDeps): IUi {
       h('div.ns-loading__meta', null, h('span.ns-loading__label', null, loadLabel.node), h('span.ns-loading__pct', null, loadPct.node)),
     ),
   );
+
+  ta(loading, 'aria-label', 'load.aria');
 
   // ── one-shot action guard: a menu action is sent once until the game changes state
   let pending = false;
@@ -105,7 +108,7 @@ export function createUi(deps: UiDeps): IUi {
   const intro = h(
     'section.ns-layer.ns-intro',
     { 'aria-live': 'polite' },
-    h('div.ns-intro__inner', null, h('div.ns-intro__text', null, 'Get ready'), h('span.ns-intro__line', { 'aria-hidden': 'true' })),
+    h('div.ns-intro__inner', null, h('div.ns-intro__text', null, tn('intro.ready')), h('span.ns-intro__line', { 'aria-hidden': 'true' })),
   );
 
   // Diagnostics exist only with ?debug in the URL, whatever the game sends.

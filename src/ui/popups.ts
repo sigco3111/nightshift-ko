@@ -4,6 +4,7 @@
  * Popups are absolutely positioned and stacked by transform (newest on top), so a new popup
  * slides the others down with interruptible CSS transitions instead of reflowing the column.
  */
+import { t } from '../i18n';
 import { h, prefersReducedMotion } from './dom';
 
 export type PopupKind = 'nearMiss' | 'bonus' | 'warning' | 'info';
@@ -124,7 +125,7 @@ export class Banner {
     const changed = text !== this.current || this.el.getAttribute('data-kind') !== kind;
     this.current = text;
     this.el.setAttribute('data-kind', kind);
-    this.eyebrow.textContent = kind === 'warning' ? 'Warning' : 'Notice';
+    this.eyebrow.textContent = kind === 'warning' ? t('banner.warning') : t('banner.notice');
     this.text.textContent = text;
     if (!changed && this.el.hasAttribute('data-open')) return;
     if (this.el.hasAttribute('data-open') && !prefersReducedMotion()) {

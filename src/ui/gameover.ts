@@ -3,6 +3,7 @@
  * centre-right. The final score counts up once per run; everything else is static text.
  */
 import type { RunSummary } from '../core/types';
+import { t, ta, tn, type Key } from '../i18n';
 import { h, prefersReducedMotion } from './dom';
 import { formatKm, formatScore, formatTime } from './hud';
 import { NavList, menuButton, type UiSound } from './nav';
@@ -26,26 +27,26 @@ export class GameOver {
     sound: (n: UiSound) => void,
     actions: { again: () => void; menu: () => void },
   ) {
-    const stat = (label: string, unit?: string): [HTMLElement, HTMLElement] => {
+    const stat = (label: Key, unit?: string): [HTMLElement, HTMLElement] => {
       const v = h('span.ns-go__stat-value');
-      const wrap = h('div.ns-go__stat', null, h('span.ns-label', null, label), h('span.ns-go__stat-line', null, v, unit ? h('span.ns-unit', null, unit) : null));
+      const wrap = h('div.ns-go__stat', null, h('span.ns-label', null, tn(label)), h('span.ns-go__stat-line', null, v, unit ? h('span.ns-unit', null, unit) : null));
       return [wrap, v];
     };
-    const [sd, vd] = stat('Distance', 'km');
-    const [st, vt] = stat('Top speed', 'km/h');
-    const [sn, vn] = stat('Near misses');
-    const [ss, vs] = stat('Survival time');
-    const [sc, vc] = stat('Best combo');
-    const [sr, vr] = stat('Risk bonus');
+    const [sd, vd] = stat('go.distance', 'km');
+    const [st, vt] = stat('go.topSpeed', 'km/h');
+    const [sn, vn] = stat('go.nearMisses');
+    const [ss, vs] = stat('go.survival');
+    const [sc, vc] = stat('go.bestCombo');
+    const [sr, vr] = stat('go.risk');
     this.stats = { distance: vd, top: vt, near: vn, time: vs, combo: vc, risk: vr };
 
     this.cause = h('div.ns-go__cause');
     this.score = h('div.ns-go__score', null, '0');
-    this.badge = h('span.ns-badge', null, 'New best');
+    this.badge = h('span.ns-badge', null, tn('go.newBest'));
     this.best = h('div.ns-go__best');
 
-    const again = menuButton('Play again', { primary: true, hint: 'Enter' });
-    const menu = menuButton('Main menu', { hint: 'Esc' });
+    const again = menuButton(tn('go.again'), { primary: true, hint: 'Enter' });
+    const menu = menuButton(tn('go.menu'), { hint: 'Esc' });
     this.nav = new NavList(
       [
         { el: again, activate: actions.again },
@@ -58,29 +59,30 @@ export class GameOver {
     const panel = h(
       'div.ns-go__panel.ns-stagger',
       null,
-      h('div.ns-eyebrow', null, 'Run over'),
+      h('div.ns-eyebrow', null, tn('go.eyebrow')),
       this.cause,
-      h('div.ns-go__scorehead', null, h('span.ns-label', null, 'Final score'), this.badge),
+      h('div.ns-go__scorehead', null, h('span.ns-label', null, tn('go.finalScore')), this.badge),
       this.score,
       h('div.ns-go__grid', null, sd, st, sn, ss, sc, sr),
       this.best,
       h('div.ns-go__actions', { role: 'menu' }, again, menu),
     );
-    this.el = h('section.ns-layer.ns-go', { 'aria-label': 'Run summary' }, h('div.ns-scrim.ns-scrim--go'), panel);
+    this.el = h('section.ns-layer.ns-go', { 'aria-label': t('go.aria') }, h('div.ns-scrim.ns-scrim--go'), panel);
+    ta(this.el, 'aria-label', 'go.aria');
   }
 
   setSummary(s: RunSummary): void {
     this.summary = s;
-    this.cause.textContent = s.cause || 'Wrecked';
+    this.cause.textContent = s.cause || t('go.cause.default');
     this.stats.distance.textContent = formatKm(s.distance);
     this.stats.top.textContent = String(Math.round(s.topSpeedKmh));
     this.stats.near.textContent = String(s.nearMisses);
-    const t = formatTime(s.survivalTime);
-    this.stats.time.textContent = t.main + t.frac;
+    const tm = formatTime(s.survivalTime);
+    this.stats.time.textContent = tm.main + tm.frac;
     this.stats.combo.textContent = s.bestCombo > 1 ? `×${Math.floor(s.bestCombo)}` : '—';
     this.stats.risk.textContent = s.riskBonus > 0 ? `+${formatScore(s.riskBonus)}` : '0';
     this.best.replaceChildren(
-      h('span.ns-label', null, 'Best score'),
+      h('span.ns-label', null, tn('go.bestScore')),
       h('span.ns-go__best-value', null, formatScore(Math.max(s.bestScore, s.isNewBest ? s.score : 0))),
     );
     this.el.toggleAttribute('data-newbest', s.isNewBest);

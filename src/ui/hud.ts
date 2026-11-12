@@ -4,6 +4,7 @@
  * move with transform only; colour bands switch with a data attribute.
  */
 import type { HudState } from '../core/types';
+import { tn, type Key } from '../i18n';
 import { LiveText, arrowIcon, h, kbd, prefersReducedMotion, setFlag } from './dom';
 
 /** Quantise bar values so sub-pixel noise does not cause style writes every frame. */
@@ -78,9 +79,9 @@ export class Hud {
     const tl = h(
       'div.ns-hud__tl.ns-corner',
       null,
-      h('div.ns-stat', null, h('span.ns-label', null, 'Distance'), h('span.ns-stat__value', null, this.distText.node, h('span.ns-unit', null, 'km'))),
+      h('div.ns-stat', null, h('span.ns-label', null, tn('hud.distance')), h('span.ns-stat__value', null, this.distText.node, h('span.ns-unit', null, 'km'))),
       h('span.ns-vrule', { 'aria-hidden': 'true' }),
-      h('div.ns-stat', null, h('span.ns-label', null, 'Time'), h('span.ns-stat__value', null, this.timeMain.node, h('span.ns-frac', null, this.timeFrac.node))),
+      h('div.ns-stat', null, h('span.ns-label', null, tn('hud.time')), h('span.ns-stat__value', null, this.timeMain.node, h('span.ns-frac', null, this.timeFrac.node))),
     );
 
     // ── top-right: score + combo + popups
@@ -89,14 +90,14 @@ export class Hud {
     this.comboWrap = h(
       'div.ns-combo',
       null,
-      h('div.ns-combo__head', null, h('span.ns-label.ns-label--amber', null, 'Combo'), this.comboValue),
+      h('div.ns-combo__head', null, h('span.ns-label.ns-label--amber', null, tn('hud.combo')), this.comboValue),
       h('span.ns-combo__track', null, this.comboBar),
     );
     this.popupHost = h('div.ns-popups', { 'aria-live': 'polite' });
     const tr = h(
       'div.ns-hud__tr.ns-corner',
       null,
-      h('div.ns-score', null, h('span.ns-label', null, 'Score'), h('span.ns-score__value', null, this.scoreText.node)),
+      h('div.ns-score', null, h('span.ns-label', null, tn('hud.score')), h('span.ns-score__value', null, this.scoreText.node)),
       this.comboWrap,
       this.popupHost,
     );
@@ -115,14 +116,14 @@ export class Hud {
     this.nitroWrap = h(
       'div.ns-meter.ns-meter--nitro',
       null,
-      h('span.ns-label', null, 'Nitro'),
+      h('span.ns-label', null, tn('hud.nitro')),
       h('span.ns-meter__track', null, this.nitroFill, h('span.ns-meter__glow')),
     );
     this.integrityFill = h('span.ns-meter__fill');
     this.integrityWrap = h(
       'div.ns-meter.ns-meter--integrity',
       null,
-      h('span.ns-label', null, 'Integrity'),
+      h('span.ns-label', null, tn('hud.integrity')),
       h('span.ns-meter__track', null, this.integrityFill),
       h('span.ns-meter__value', null, this.integrityText.node, '%'),
     );
@@ -132,7 +133,7 @@ export class Hud {
       h(
         'div.ns-speed',
         null,
-        h('div.ns-gear', null, h('span.ns-label', null, 'Gear'), h('span.ns-gear__value', null, this.gearText.node)),
+        h('div.ns-gear', null, h('span.ns-label', null, tn('hud.gear')), h('span.ns-gear__value', null, this.gearText.node)),
         h('div.ns-speed__main', null, speedNum, h('span.ns-speed__unit', null, 'km/h')),
       ),
       this.rpmWrap,
@@ -141,8 +142,8 @@ export class Hud {
     );
 
     // ── bottom-centre: first-seconds control hints
-    const hint = (keys: Array<string | Node>[], label: string): HTMLElement =>
-      h('div.ns-hint', null, h('span.ns-hint__keys', null, ...keys.map((k) => kbd(...k))), h('span.ns-hint__label', null, label));
+    const hint = (keys: Array<string | Node>[], label: Key): HTMLElement =>
+      h('div.ns-hint', null, h('span.ns-hint__keys', null, ...keys.map((k) => kbd(...k))), h('span.ns-hint__label', null, tn(label)));
     // Two groups (driving / the rest): one line when there is room, a balanced 4 + 3 otherwise.
     this.hints = h(
       'div.ns-hints',
@@ -150,12 +151,12 @@ export class Hud {
       h(
         'div.ns-hints__group',
         null,
-        hint([['W'], [arrowIcon('up')]], 'Accelerate'),
-        hint([['S'], [arrowIcon('down')]], 'Brake'),
-        hint([['A'], ['D']], 'Steer'),
-        hint([['Shift']], 'Nitro'),
+        hint([['W'], [arrowIcon('up')]], 'hint.accelerate'),
+        hint([['S'], [arrowIcon('down')]], 'hint.brake'),
+        hint([['A'], ['D']], 'hint.steer'),
+        hint([['Shift']], 'hint.nitro'),
       ),
-      h('div.ns-hints__group', null, hint([['Space']], 'Handbrake'), hint([['C']], 'Camera'), hint([['Esc']], 'Pause')),
+      h('div.ns-hints__group', null, hint([['Space']], 'hint.handbrake'), hint([['C']], 'hint.camera'), hint([['Esc']], 'hint.pause')),
     );
 
     this.vignette = h('div.ns-vignette', { 'aria-hidden': 'true' });

@@ -7,6 +7,7 @@
  * constantly); only colour/opacity eases for ~100 ms so it does not flicker.
  */
 import { h } from './dom';
+import { ta, tn, type Key } from '../i18n';
 
 export type UiSound = 'uiHover' | 'uiClick' | 'uiStart' | 'uiBack';
 
@@ -101,7 +102,7 @@ export class NavList {
 
 // ───────────────────────────────────────────────────────────── buttons
 
-export function menuButton(label: string, opts: { hint?: string; primary?: boolean; sub?: string } = {}): HTMLButtonElement {
+export function menuButton(label: string | Node, opts: { hint?: string; primary?: boolean; sub?: string } = {}): HTMLButtonElement {
   const b = h<'button'>('button.ns-btn', { type: 'button' });
   if (opts.primary) b.classList.add('ns-btn--primary');
   const text = h('span.ns-btn__label', null, label);
@@ -113,9 +114,9 @@ export function menuButton(label: string, opts: { hint?: string; primary?: boole
 
 // ───────────────────────────────────────────────────────────── settings rows
 
-function row(label: string, control: HTMLElement, value?: HTMLElement): HTMLElement {
+function row(label: Key, control: HTMLElement, value?: HTMLElement): HTMLElement {
   const r = h('div.ns-row');
-  r.append(h('span.ns-row__label', null, label), control);
+  r.append(h('span.ns-row__label', null, tn(label)), control);
   if (value) r.append(value);
   return r;
 }
@@ -124,14 +125,15 @@ export interface SegmentedControl extends NavItem {
   set(index: number): void;
 }
 
-export function segmented(label: string, options: readonly string[], onChange: (i: number) => void, sound: (n: UiSound) => void): SegmentedControl {
-  const group = h('div.ns-seg', { role: 'radiogroup', 'aria-label': label, 'data-subcontrol': '' });
+export function segmented(label: Key, options: ReadonlyArray<Key | { text: string }>, onChange: (i: number) => void, sound: (n: UiSound) => void): SegmentedControl {
+  const group = h('div.ns-seg', { role: 'radiogroup', 'data-subcontrol': '' });
+  ta(group, 'aria-label', label);
   group.style.setProperty('--n', String(options.length));
   const thumb = h('span.ns-seg__thumb', { 'aria-hidden': 'true' });
   group.append(thumb);
   let current = -1;
   const buttons = options.map((o, i) => {
-    const b = h<'button'>('button.ns-seg__opt', { type: 'button', role: 'radio', tabindex: -1 }, o);
+    const b = h<'button'>('button.ns-seg__opt', { type: 'button', role: 'radio', tabindex: -1 }, typeof o === 'string' ? tn(o) : o.text);
     b.addEventListener('click', () => choose(i));
     group.append(b);
     return b;
@@ -165,7 +167,7 @@ export interface SliderControl extends NavItem {
   set(v01: number): void;
 }
 
-export function slider(label: string, onChange: (v01: number) => void, sound: (n: UiSound) => void, step = 0.05): SliderControl {
+export function slider(label: Key, onChange: (v01: number) => void, sound: (n: UiSound) => void, step = 0.05): SliderControl {
   const fill = h('span.ns-slider__fill');
   const rail = h('span.ns-slider__rail', null, h('span.ns-slider__thumb'));
   const track = h('span.ns-slider__track', null, fill);
@@ -174,7 +176,7 @@ export function slider(label: string, onChange: (v01: number) => void, sound: (n
   const el = row(label, s, value);
   el.classList.add('ns-row--slider');
   el.setAttribute('role', 'slider');
-  el.setAttribute('aria-label', label);
+  ta(el, 'aria-label', label);
   el.setAttribute('aria-valuemin', '0');
   el.setAttribute('aria-valuemax', '100');
   let v = -1;
@@ -231,21 +233,23 @@ export interface ToggleControl extends NavItem {
   set(on: boolean): void;
 }
 
-export function toggle(label: string, onChange: (on: boolean) => void, sound: (n: UiSound) => void): ToggleControl {
+export function toggle(label: Key, onChange: (on: boolean) => void, sound: (n: UiSound) => void): ToggleControl {
   const state = h('span.ns-switch__state');
   const sw = h('span.ns-switch', { 'aria-hidden': 'true' }, h('span.ns-switch__knob'));
   const ctl = h('span.ns-switch-wrap', null, state, sw);
   const el = row(label, ctl);
   el.classList.add('ns-row--toggle');
   el.setAttribute('role', 'switch');
-  el.setAttribute('aria-label', label);
+  ta(el, 'aria-label', label);
   let on: boolean | null = null;
+  const stateOn = tn('set.on');
+  const stateOff = tn('set.off');
   function set(x: boolean): void {
     if (x === on) return;
     on = x;
     el.setAttribute('aria-checked', x ? 'true' : 'false');
     el.toggleAttribute('data-on', x);
-    state.textContent = x ? 'On' : 'Off';
+    state.replaceChildren(x ? stateOn : stateOff);
   }
   function flip(x: boolean): void {
     if (x === on) return;

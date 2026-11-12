@@ -19,8 +19,10 @@
   --ns-nitro: #cfe2ff;
   --ns-ink: #05070a;
 
-  --ns-display: 'NS Display', 'Saira', 'Segoe UI', system-ui, sans-serif;
-  --ns-text: 'NS Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  /* NS Display / NS Text are Latin-only subsets: Hangul falls through to the system fonts below. */
+  --ns-ko: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Nanum Gothic';
+  --ns-display: 'NS Display', 'Saira', var(--ns-ko), 'Segoe UI', system-ui, sans-serif;
+  --ns-text: 'NS Text', 'Inter', var(--ns-ko), 'Segoe UI', system-ui, sans-serif;
   --ns-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -2028,4 +2030,45 @@ html[data-ns-play] * {
     animation: none;
     transform: none;
   }
+}
+
+/* ───────────────────────────────────────────── Korean (한글) ─────────────────────────────────────────────
+ * Wide tracking is a Latin small-caps look; on Hangul it breaks syllable blocks apart and overflows
+ * buttons, so the labels get a small tracking and eager word-keeping line breaks instead. Numerals,
+ * key caps and the wordmark keep their original look. */
+html[lang='ko'] .ns {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-break: strict;
+}
+
+html[lang='ko'] .ns :is(.ns-label, .ns-eyebrow, .ns-loading__meta, .ns-title, .ns-btn__label, .ns-seg__opt, .ns-switch__state, .ns-kbnote__title, .ns-kbnote__hint, .ns-popup__label, .ns-hint__label, .ns-banner__eyebrow, .ns-banner__text, .ns-intro__text, .ns-go__cause, .ns-badge, .ns-legend__item > span:last-child, .ns-ctl__label, .ns-row__label, .ns-foot, .ns-tagline) {
+  letter-spacing: 0.04em;
+}
+
+html[lang='ko'] .ns .ns-btn {
+  letter-spacing: 0.06em;
+}
+
+html[lang='ko'] .ns .ns-banner__text,
+html[lang='ko'] .ns .ns-go__cause {
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+html[lang='ko'] .ns .ns-intro__text {
+  letter-spacing: 0.2em;
+}
+
+.ns-credit {
+  margin-top: 0.7em;
+  font-size: 0.85em;
+  opacity: 0.6;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.ns-btn--lang {
+  margin-top: 0.6em;
+  opacity: 0.85;
 }
