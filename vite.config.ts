@@ -3,8 +3,8 @@ import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 import { readdirSync } from 'node:fs';
 
-// Sandbox pages (sandbox/*.html) are dev/test-only entry points; they are served by the dev
-// server but are NOT part of the production build (only index.html is).
+// Sandbox pages (sandbox/*.html) are dev/test-only entry points served by the dev server; only
+// index.html and ui-preview.html (no WebGL, used to check the Korean UI) are part of the production build.
 export default defineConfig(({ command }) => ({
   base: './',
   publicDir: 'public',
@@ -17,7 +17,8 @@ export default defineConfig(({ command }) => ({
     chunkSizeWarningLimit: 2500,
     sourcemap: false,
     rollupOptions: {
-      input: { main: resolve(import.meta.dirname, 'index.html') },
+      // ui-preview.html (the UI sandbox page: UI over a CSS backdrop, no WebGL) ships too: it lets the localized UI be checked without a GPU.
+      input: { main: resolve(import.meta.dirname, 'index.html'), uiPreview: resolve(import.meta.dirname, 'ui-preview.html') },
       output: {
         // Libraries change far less often than the game: separate, long-cacheable chunks.
         manualChunks(id: string) {

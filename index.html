@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content="NIGHTSHIFT: Survive the Midnight. A cinematic rain-soaked highway driving game that runs in your browser." />
+    <meta name="description" content="나이트시프트(NIGHTSHIFT): 비 내리는 한밤의 고속도로를 달리는 시네마틱 드라이빙 게임. 브라우저에서 바로 실행됩니다. (비공식 한글화)" />
     <meta name="theme-color" content="#05070a" />
     <meta name="color-scheme" content="dark" />
-    <title>NIGHTSHIFT — Survive the Midnight</title>
+    <title>NIGHTSHIFT 나이트시프트 — 자정을 살아남아라</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2305070a'/%3E%3Cpath d='M8 23V9l16 14V9' fill='none' stroke='%23ffb14a' stroke-width='3.2' stroke-linecap='square'/%3E%3C/svg%3E" />
     <style>
       html, body { margin: 0; height: 100%; background: #05070a; overflow: hidden; }
-      body { color: #e8ecf2; font-family: system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      body { color: #e8ecf2; font-family: system-ui, 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; -webkit-font-smoothing: antialiased; }
       #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
       #ui { position: fixed; inset: 0; }
       #boot-error {
@@ -21,10 +21,10 @@
     </style>
   </head>
   <body>
-    <canvas id="game" tabindex="-1" aria-label="NIGHTSHIFT game view"></canvas>
+    <canvas id="game" tabindex="-1" aria-label="NIGHTSHIFT 게임 화면"></canvas>
     <div id="ui"></div>
     <div id="boot-error" role="alert" hidden></div>
-    <noscript>NIGHTSHIFT needs JavaScript and WebGL 2 to run.</noscript>
+    <noscript>NIGHTSHIFT를 실행하려면 JavaScript와 WebGL 2가 필요합니다.</noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
